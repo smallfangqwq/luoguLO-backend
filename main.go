@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"runtime"
 	"time"
@@ -13,9 +12,55 @@ import (
 var timeInterval interface{}
 var timeOlder interface{}
 
+type AutoSaveFetchStruct struct {
+	Status int `json:"status"`
+	Data   struct {
+		Count  int `json:"count"`
+		Result []struct {
+			PostID int    `json:"PostID"`
+			Title  string `json:"Title"`
+			Author struct {
+				Instance string `json:"_instance"`
+			} `json:"Author"`
+			Forum struct {
+				ForumID      int    `json:"ForumID"`
+				Name         string `json:"Name"`
+				InternalName string `json:"InternalName"`
+				Instance     string `json:"_instance"`
+			} `json:"Forum"`
+			Top         int  `json:"Top"`
+			SubmitTime  int  `json:"SubmitTime"`
+			IsValid     bool `json:"isValid"`
+			LatestReply struct {
+				Author struct {
+					Instance string `json:"_instance"`
+				} `json:"Author"`
+				ReplyTime int    `json:"ReplyTime"`
+				Content   string `json:"Content"`
+				Instance  string `json:"_instance"`
+			} `json:"LatestReply"`
+			RepliesCount int    `json:"RepliesCount"`
+			Instance     string `json:"_instance"`
+		} `json:"result"`
+	} `json:"data"`
+}
+
+func JSONToMap(str []byte) AutoSaveFetchStruct {
+
+	var tempMap AutoSaveFetchStruct
+
+	err := json.Unmarshal(str, &tempMap)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return tempMap
+}
+
 func AutoSave() {
 	runtime.Gosched()
-	time.Sleep(2 * time.Second)
+	//time.Sleep(2 * time.Second)
 	for true {
 		// runtime.Gosched()
 		fmt.Printf("[Info] AutoSave Tool is fetch from Luogu now. \n")
@@ -34,22 +79,14 @@ func AutoSave() {
 		resp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("[ERROR] AutoSave Tool can`t get Luogu discuss now. We change the interval to 120 seconds.\n")
-			log.Fatal("[ERROR]Error reading response. ", err)
+			fmt.Print("[ERROR]Error reading response. ", err)
 			time.Sleep(120 * time.Second)
 			continue
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
-		fmt.Printf(string(body))
-		var dataMap map[string]int
-		dataStr := body
-		err = json.Unmarshal([]byte(dataStr), &dataMap)
-		if err != nil {
-			fmt.Printf("[ERROR] AutoSave Tool can`t change luogu discuss to right way.\n")
-			log.Fatal("[ERROR] AutoSave ERROR log: ", err)
-			time.Sleep(120 * time.Second)
-			continue
-		}
+		ts := JSONToMap(body)
+		fmt.Print(ts.Data.Result[0].Title)
 		time.Sleep(timeInterval.(time.Duration))
 	}
 }
