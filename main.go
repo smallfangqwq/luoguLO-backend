@@ -58,6 +58,10 @@ func JSONToMap(str []byte) AutoSaveFetchStruct {
 	return tempMap
 }
 
+func SaveNewDiscuss(PostID int) {
+
+}
+
 func AutoSave() {
 	runtime.Gosched()
 	//time.Sleep(2 * time.Second)
@@ -85,8 +89,16 @@ func AutoSave() {
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
-		ts := JSONToMap(body)
-		fmt.Print(ts.Data.Result[0].Title)
+		dataThings := JSONToMap(body)
+		lenOfDataResult := len(dataThings.Data.Result)
+		for i := 0; i < lenOfDataResult; i++ {
+			var discuss = dataThings.Data.Result[i]
+			if discuss.Top > 2 {
+				// 忽略置顶
+				continue
+			}
+			SaveNewDiscuss(dataThings.Data.Result[i].PostID)
+		}
 		time.Sleep(timeInterval.(time.Duration))
 	}
 }
