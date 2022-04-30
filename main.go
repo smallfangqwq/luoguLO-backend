@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -48,7 +50,6 @@ type AutoSaveFetchStruct struct {
 }
 
 func JSONToMap(str []byte) AutoSaveFetchStruct {
-
 	var tempMap AutoSaveFetchStruct
 	err := json.Unmarshal(str, &tempMap)
 
@@ -60,8 +61,63 @@ func JSONToMap(str []byte) AutoSaveFetchStruct {
 	return tempMap
 }
 
-func SaveNewDiscuss(PostID int) {
+type DBDiscussTemplate struct {
+	PostID   int
+	Author   string
+	title    string
+	describe string
+	count    int
+	Comment  []struct {
+		SendTime int64
+		Author   string
+		Content  string
+	}
+}
 
+func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
+	return
+}
+
+func SaveNewDiscuss(PostID int) {
+	// 检查是否已经存在
+	session, err := mgo.Dial("mongodb://root:rtpwd@localhost:62232")
+	var discuss DBDiscussTemplate
+	var discussCount int
+	discussCount, err = session.DB("luogulo").C("discuss").Find(bson.M{"id": PostID}).Count()
+	if err != nil {
+		fmt.Print("[Save ERROR] Can`t check exist. LOG:", err)
+		return
+	}
+	if discussCount == 0 {
+		// 爬全部
+		// 分析帖子
+	} else {
+		err = session.DB("luogulo").C("discuss").Find(bson.M{"id": PostID}).One(&discuss)
+		if err != nil {
+			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err)
+			return
+		}
+		// 先看看爬到的最后一条的发布时间
+		lastTime := discuss.Comment[discuss.count-1].SendTime
+		// 分析现在的帖子
+		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
+		// 将新评论整理
+		lens := nowThings.count
+		NewDiscuss := discuss
+		for i := 0; i < lens; i++ {
+			if nowThings.Comment[i].SendTime > lastTime {
+				NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
+				NewDiscuss.count++
+			}
+		}
+		// 将内容update.
+		newData, err := bson.Marshal(&NewDiscuss)
+		if err != nil {
+			fmt.Print("[Save ERROR] ERROR. LOG:", err)
+		}
+		oldData, err := bson.Marshal(&discuss)
+		session.DB("luogulo").C("discuss").Update(oldData, newData)
+	}
 }
 
 func AutoSave() {

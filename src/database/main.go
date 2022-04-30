@@ -9,7 +9,7 @@ import (
 )
 
 func ConnectSQL() (*mongo.Client, bool) {
-	clientOptions := options.Client().ApplyURI("mongodb://root:etqrefLFHERFHELFHekljwfsfeqfe@localhost:27017")
+	clientOptions := options.Client().ApplyURI("mongodb://root:rtpwd@localhost/luogulo")
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal(err)
