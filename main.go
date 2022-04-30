@@ -156,6 +156,7 @@ func SaveNewDiscuss(PostID int) {
 
 func AutoSave() {
 	runtime.Gosched()
+	fmt.Printf("[Info] AutoSave Tool has been started.\n")
 	//time.Sleep(2 * time.Second)
 	for true {
 		// runtime.Gosched()
@@ -200,7 +201,6 @@ func main() {
 	timeInterval = 5 * 1000 * time.Millisecond
 	timeOlder = timeOlder
 	go AutoSave()
-	fmt.Printf("[Info] AutoSave Tool has been started.\n")
 	for true {
 		var command string
 		fmt.Scanln(&command)
