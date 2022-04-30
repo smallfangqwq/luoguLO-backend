@@ -12,6 +12,8 @@ import (
 var timeInterval interface{}
 var timeOlder interface{}
 
+var fetchCount int64 = 0
+
 type AutoSaveFetchStruct struct {
 	Status int `json:"status"`
 	Data   struct {
@@ -48,11 +50,11 @@ type AutoSaveFetchStruct struct {
 func JSONToMap(str []byte) AutoSaveFetchStruct {
 
 	var tempMap AutoSaveFetchStruct
-
 	err := json.Unmarshal(str, &tempMap)
 
 	if err != nil {
-		panic(err)
+		fmt.Printf("[ERROR] JSON DEAL ERROR WITH AUTOSAVE, LOG:\n", err)
+		return tempMap
 	}
 
 	return tempMap
@@ -67,7 +69,7 @@ func AutoSave() {
 	//time.Sleep(2 * time.Second)
 	for true {
 		// runtime.Gosched()
-		fmt.Printf("[Info] AutoSave Tool is fetch from Luogu now. \n")
+		//fmt.Printf("[Info] AutoSave Tool are fetching from Luogu now. \n") 隐藏本条并修改语法。
 		url := "https://www.luogu.com.cn/api/discuss?forum=relevantaffairs&page=1"
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -91,6 +93,7 @@ func AutoSave() {
 		body, err := ioutil.ReadAll(resp.Body)
 		dataThings := JSONToMap(body)
 		lenOfDataResult := len(dataThings.Data.Result)
+		fetchCount++
 		for i := 0; i < lenOfDataResult; i++ {
 			var discuss = dataThings.Data.Result[i]
 			if discuss.Top > 2 {
@@ -119,6 +122,9 @@ func main() {
 			timeInterval = time.Duration(newTime) * time.Millisecond
 			timeOlder = timeInterval
 			fmt.Printf("[AutoSave] Settings done!\n")
+		}
+		if command == "countf" || command == "ft" {
+			fmt.Printf("[AutoSave] We fetch %d time(s)\n", fetchCount)
 		}
 	}
 }
