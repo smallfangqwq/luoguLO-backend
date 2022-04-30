@@ -73,9 +73,9 @@ type DBComment struct {
 type DBDiscussTemplate struct {
 	PostID   int
 	Author   string
-	sendTime int64
-	title    string
-	describe string
+	SendTime int64
+	Title    string
+	Describe string
 	count    int
 	Comment  []DBComment
 }
@@ -111,10 +111,11 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 	}
 	result.count = 0
 	titles := doc.Find("h1").First().Text()
-	result.title = titles
+	result.Title = titles
 	result.PostID = PostID
+
 	result.count = 0
-	fmt.Printf(titles)
+	//fmt.Printf(titles)
 	// 获取每条评论的发布时间和内容以及整个帖子内容
 	doc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 		texts := selection.Find("a").First().Text()
@@ -122,7 +123,8 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			oldT := selection.Text()
 			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
-			result.sendTime = sendTimes.Unix()
+			result.SendTime = sendTimes.Unix()
+			result.Author = texts
 			return
 		}
 		result.count++
@@ -140,7 +142,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 	doc.Find(".am-comment-bd").Each(func(i int, selection *goquery.Selection) {
 		htmls, _ := selection.Html()
 		if i == 0 {
-			result.describe = htmls
+			result.Describe = htmls
 			return
 		}
 		result.Comment[i-1].Content = htmls
@@ -199,7 +201,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			break
 		}
 	}
-	fmt.Print(result)
+	//	fmt.Print(result)
 	return
 }
 
@@ -215,7 +217,7 @@ func SaveNewDiscuss(PostID int) {
 	}
 	if discussCount == 0 {
 		// 爬全部
-		fmt.Printf("HERE")
+		//	fmt.Printf("HERE")
 		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
 		// 分析帖子
 		//nowThingsDB, err := bson.Marshal(&nowThings)
@@ -309,7 +311,7 @@ func AutoSave() {
 }
 
 func main() {
-	timeInterval = 5 * 1000 * time.Millisecond
+	timeInterval = 30 * 1000 * time.Millisecond
 	timeOlder = timeOlder
 	go AutoSave()
 	for true {
