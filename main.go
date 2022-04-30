@@ -229,13 +229,19 @@ func SaveNewDiscuss(PostID int) {
 			fmt.Print("[Save ERROR] ERROR. LOG:", err)
 		}
 	} else {
-		err = session.DB("luogulo").C("discuss").Find(bson.M{"id": PostID}).One(&discuss)
+		err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).One(&discuss)
 		if err != nil {
 			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err)
 			return
 		}
 		// 先看看爬到的最后一条的发布时间
-		lastTime := discuss.Comment[discuss.count-1].SendTime
+		var lastTime int64
+		if discuss.count > 0 {
+			lastTime = discuss.Comment[discuss.count-1].SendTime
+		} else {
+			lastTime = 0
+		}
+
 		// 分析现在的帖子
 		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
 		// 将新评论整理
@@ -243,7 +249,7 @@ func SaveNewDiscuss(PostID int) {
 		NewDiscuss := discuss
 		for i := 0; i < lens; i++ {
 			if nowThings.Comment[i].SendTime > lastTime {
-				NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
+				NewDiscuss.Comment = append(NewDiscuss.Comment, nowThings.Comment[i])
 				NewDiscuss.count++
 			} else if nowThings.Comment[i].SendTime == lastTime { // 可爱的洛谷竟然只到分钟，显然有可能遇到时间问题
 				flag := false
