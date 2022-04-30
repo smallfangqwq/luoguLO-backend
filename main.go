@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -75,6 +77,38 @@ type DBDiscussTemplate struct {
 }
 
 func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
+	//这个要爬多页面的...离谱
+	//想想都头疼...
+	url := "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
+		time.Sleep(120 * time.Second)
+		return
+	}
+	req.Header.Set("Cookie", "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299")
+	req.Header.Set("Host", "www.luogu.com.cn")
+	req.Header.Set("Referer", "https://www.luogu.com.cn")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+	client := &http.Client{Timeout: time.Second * 15}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
+		fmt.Print("[ERROR]Error reading response. ", err)
+		time.Sleep(120 * time.Second)
+		return
+	}
+	defer resp.Body.Close()
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
+		fmt.Print("[ERROR]Error reading response. ", err)
+		time.Sleep(120 * time.Second)
+		return
+	}
+	doc.Find("article").Each(func(i int, selection *goquery.Selection) {
+		fmt.Println("i", i, "select text", selection)
+	})
 	return
 }
 
@@ -181,6 +215,12 @@ func main() {
 		}
 		if command == "countf" || command == "ft" {
 			fmt.Printf("[AutoSave] We fetch %d time(s)\n", fetchCount)
+		}
+		if command == "debugD" || command == "dd" {
+			fmt.Printf("[Discuss] ID?\n")
+			var discussID int
+			fmt.Scanln(&discussID)
+			ChangeDiscussToDBDiscussTemlate(discussID)
 		}
 	}
 }
