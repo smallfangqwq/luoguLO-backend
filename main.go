@@ -209,6 +209,11 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 func SaveNewDiscuss(PostID int) {
 	// 检查是否已经存在
 	session, err := mgo.Dial("mongodb://root:rtpwd@localhost:62232")
+	if err != nil {
+		fmt.Print("[Save Warning] can`t connect with mongoDB retrying.. LOG:", err, "\n")
+		SaveNewDiscuss(PostID)
+		return
+	}
 	var discuss DBDiscussTemplate
 	var discussCount int
 	discussCount, err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).Count()
@@ -272,6 +277,7 @@ func SaveNewDiscuss(PostID int) {
 			fmt.Print("[Save ERROR] ERROR. LOG:", err)
 		}
 	}
+	defer session.Close()
 }
 
 func AutoSave() {
