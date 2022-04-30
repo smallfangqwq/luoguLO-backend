@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"time"
 )
@@ -275,6 +276,7 @@ func SaveNewDiscuss(PostID int) {
 
 func AutoSave() {
 	runtime.Gosched()
+	debug.SetTraceback("goroutine")
 	fmt.Printf("[Info] AutoSave Tool has been started.\n")
 	//time.Sleep(2 * time.Second)
 	for true {
@@ -319,6 +321,7 @@ func AutoSave() {
 func main() {
 	timeInterval = 30 * 1000 * time.Millisecond
 	timeOlder = timeOlder
+	debug.SetTraceback("goroutine")
 	go AutoSave()
 	for true {
 		var command string
