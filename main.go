@@ -8,6 +8,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"runtime"
 	"strconv"
 	"time"
@@ -63,17 +64,19 @@ func JSONToMap(str []byte) AutoSaveFetchStruct {
 	return tempMap
 }
 
+type DBComment struct {
+	SendTime int64
+	Author   string
+	Content  string
+}
+
 type DBDiscussTemplate struct {
 	PostID   int
 	Author   string
 	title    string
 	describe string
 	count    int
-	Comment  []struct {
-		SendTime int64
-		Author   string
-		Content  string
-	}
+	Comment  []DBComment
 }
 
 func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
@@ -106,9 +109,33 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		time.Sleep(120 * time.Second)
 		return
 	}
-	doc.Find("article").Each(func(i int, selection *goquery.Selection) {
-		fmt.Println("i", i, "select text", selection)
+	result.count = 0
+	//获取每条评论的发布时间和内容
+	doc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
+		texts := selection.Find("a").First().Text()
+		if i == 0 {
+			return
+		}
+		oldT := selection.Text()
+		regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
+		//result.Comment[i].Author = texts
+		var newComment DBComment
+		newComment.Author = texts
+		sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
+		newComment.SendTime = sendTimes.Unix()
+		result.Comment = append(result.Comment, newComment)
+		//fmt.Println("i", i, "select text", texts)
 	})
+	//每条内容内容获取
+	doc.Find(".am-comment-bd").Each(func(i int, selection *goquery.Selection) {
+		htmls, _ := selection.Html()
+		if i == 0 {
+			return
+		}
+		result.Comment[i-1].Content = htmls
+		fmt.Println("i", i, "select text", htmls)
+	})
+	fmt.Print(result)
 	return
 }
 
@@ -142,6 +169,18 @@ func SaveNewDiscuss(PostID int) {
 			if nowThings.Comment[i].SendTime > lastTime {
 				NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
 				NewDiscuss.count++
+			} else if nowThings.Comment[i].SendTime == lastTime { // 可爱的洛谷竟然只到分钟，显然有可能遇到时间问题
+				flag := false
+				for j := 0; j < discuss.count; j++ {
+					if discuss.Comment[j].Content == nowThings.Comment[j].Content {
+						flag = true
+						break
+					}
+				}
+				if flag == false {
+					NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
+					NewDiscuss.count++
+				}
 			}
 		}
 		// 将内容update.
@@ -200,7 +239,7 @@ func AutoSave() {
 func main() {
 	timeInterval = 5 * 1000 * time.Millisecond
 	timeOlder = timeOlder
-	go AutoSave()
+	//	go AutoSave()
 	for true {
 		var command string
 		fmt.Scanln(&command)
