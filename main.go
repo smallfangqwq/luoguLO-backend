@@ -73,6 +73,7 @@ type DBComment struct {
 type DBDiscussTemplate struct {
 	PostID   int
 	Author   string
+	sendTime int64
 	title    string
 	describe string
 	count    int
@@ -80,8 +81,7 @@ type DBDiscussTemplate struct {
 }
 
 func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
-	//这个要爬多页面的...离谱
-	//想想都头疼...
+	//Complete !
 	url := "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -110,12 +110,22 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		return
 	}
 	result.count = 0
-	//获取每条评论的发布时间和内容
+	titles := doc.Find("h1").First().Text()
+	result.title = titles
+	result.PostID = PostID
+	result.count = 0
+	fmt.Printf(titles)
+	// 获取每条评论的发布时间和内容以及整个帖子内容
 	doc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 		texts := selection.Find("a").First().Text()
 		if i == 0 {
+			oldT := selection.Text()
+			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
+			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
+			result.sendTime = sendTimes.Unix()
 			return
 		}
+		result.count++
 		oldT := selection.Text()
 		regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
 		//result.Comment[i].Author = texts
@@ -126,15 +136,69 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		result.Comment = append(result.Comment, newComment)
 		//fmt.Println("i", i, "select text", texts)
 	})
-	//每条内容内容获取
+	//每条内容内容获取和标题内容
 	doc.Find(".am-comment-bd").Each(func(i int, selection *goquery.Selection) {
 		htmls, _ := selection.Html()
 		if i == 0 {
+			result.describe = htmls
 			return
 		}
 		result.Comment[i-1].Content = htmls
-		fmt.Println("i", i, "select text", htmls)
+		//	fmt.Println("i", i, "select text", htmls)
 	})
+	// 多页面
+	for i := 2; true; i++ {
+		url = "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID) + "?page=" + strconv.Itoa(i)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			//fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
+			time.Sleep(120 * time.Second)
+			return
+		}
+		req.Header.Set("Cookie", "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299")
+		req.Header.Set("Host", "www.luogu.com.cn")
+		req.Header.Set("Referer", "https://www.luogu.com.cn")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+		client := &http.Client{Timeout: time.Second * 15}
+		resp, err := client.Do(req)
+		if err != nil {
+			//	fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
+			//	fmt.Print("[ERROR]Error reading response. ", err)
+			time.Sleep(120 * time.Second)
+			return
+		}
+		defer resp.Body.Close()
+		newDoc, err := goquery.NewDocumentFromReader(resp.Body)
+		nowCounts := result.count
+		newDoc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
+			texts := selection.Find("a").First().Text()
+			if i == 0 {
+				return
+			}
+			result.count++
+			oldT := selection.Text()
+			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
+			//result.Comment[i].Author = texts
+			var newComment DBComment
+			newComment.Author = texts
+			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
+			newComment.SendTime = sendTimes.Unix()
+			result.Comment = append(result.Comment, newComment)
+			//fmt.Println("i", i, "select text", texts)
+		})
+		//每条内容内容获取和标题内容
+		newDoc.Find(".am-comment-bd").Each(func(i int, selection *goquery.Selection) {
+			htmls, _ := selection.Html()
+			if i == 0 {
+				return
+			}
+			result.Comment[i-1+nowCounts].Content = htmls
+			//	fmt.Println("i", i, "select text", htmls)
+		})
+		if nowCounts == result.count { // 到头啦
+			break
+		}
+	}
 	fmt.Print(result)
 	return
 }
@@ -151,7 +215,17 @@ func SaveNewDiscuss(PostID int) {
 	}
 	if discussCount == 0 {
 		// 爬全部
+		fmt.Printf("HERE")
+		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
 		// 分析帖子
+		//nowThingsDB, err := bson.Marshal(&nowThings)
+		//if err != nil {
+		//	fmt.Print("[Save ERROR] ERROR. LOG:", err)
+		//}
+		err = session.DB("luogulo").C("discuss").Insert(&nowThings)
+		if err != nil {
+			fmt.Print("[Save ERROR] ERROR. LOG:", err)
+		}
 	} else {
 		err = session.DB("luogulo").C("discuss").Find(bson.M{"id": PostID}).One(&discuss)
 		if err != nil {
@@ -184,12 +258,10 @@ func SaveNewDiscuss(PostID int) {
 			}
 		}
 		// 将内容update.
-		newData, err := bson.Marshal(&NewDiscuss)
+		err = session.DB("luogulo").C("discuss").Update(&discuss, &NewDiscuss)
 		if err != nil {
 			fmt.Print("[Save ERROR] ERROR. LOG:", err)
 		}
-		oldData, err := bson.Marshal(&discuss)
-		session.DB("luogulo").C("discuss").Update(oldData, newData)
 	}
 }
 
@@ -239,7 +311,7 @@ func AutoSave() {
 func main() {
 	timeInterval = 5 * 1000 * time.Millisecond
 	timeOlder = timeOlder
-	//	go AutoSave()
+	go AutoSave()
 	for true {
 		var command string
 		fmt.Scanln(&command)
@@ -260,6 +332,12 @@ func main() {
 			var discussID int
 			fmt.Scanln(&discussID)
 			ChangeDiscussToDBDiscussTemlate(discussID)
+		}
+		if command == "debugS" || command == "ds" {
+			fmt.Printf("[Discuss] ID?\n")
+			var discussID int
+			fmt.Scanln(&discussID)
+			SaveNewDiscuss(discussID)
 		}
 	}
 }
