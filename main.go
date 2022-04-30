@@ -210,7 +210,7 @@ func SaveNewDiscuss(PostID int) {
 	session, err := mgo.Dial("mongodb://root:rtpwd@localhost:62232")
 	var discuss DBDiscussTemplate
 	var discussCount int
-	discussCount, err = session.DB("luogulo").C("discuss").Find(bson.M{"id": PostID}).Count()
+	discussCount, err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).Count()
 	if err != nil {
 		fmt.Print("[Save ERROR] Can`t check exist. LOG:", err)
 		return
