@@ -3,9 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"go.mongodb.org/mongo-driver/bson"
-	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -13,10 +10,13 @@ import (
 	"runtime/debug"
 	"strconv"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
 )
 
 var timeInterval interface{}
-var timeOlder interface{}
 
 var fetchCount int64 = 0
 
@@ -58,7 +58,7 @@ func JSONToMap(str []byte) AutoSaveFetchStruct {
 	err := json.Unmarshal(str, &tempMap)
 
 	if err != nil {
-		fmt.Printf("[ERROR] JSON DEAL ERROR WITH AUTOSAVE, LOG:\n", err)
+		fmt.Print("[ERROR] JSON DEAL ERROR WITH AUTOSAVE, LOG:\n", err)
 		return tempMap
 	}
 
@@ -171,7 +171,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			return
 		}
 		defer resp.Body.Close()
-		newDoc, err := goquery.NewDocumentFromReader(resp.Body)
+		newDoc, _ := goquery.NewDocumentFromReader(resp.Body)
 		nowCounts := result.count
 		newDoc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 			texts := selection.Find("a").First().Text()
@@ -265,7 +265,7 @@ func SaveNewDiscuss(PostID int) {
 						break
 					}
 				}
-				if flag == false {
+				if !flag {
 					NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
 					NewDiscuss.count++
 				}
@@ -285,7 +285,7 @@ func AutoSave() {
 	debug.SetTraceback("goroutine")
 	fmt.Printf("[Info] AutoSave Tool has been started.\n")
 	//time.Sleep(2 * time.Second)
-	for true {
+	for {
 		// runtime.Gosched()
 		//fmt.Printf("[Info] AutoSave Tool are fetching from Luogu now. \n") 隐藏本条并修改语法。
 		url := "https://www.luogu.com.cn/api/discuss?forum=relevantaffairs&page=1"
@@ -307,8 +307,8 @@ func AutoSave() {
 			time.Sleep(120 * time.Second)
 			continue
 		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		// defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
 		dataThings := JSONToMap(body)
 		lenOfDataResult := len(dataThings.Data.Result)
 		fetchCount++
@@ -326,10 +326,9 @@ func AutoSave() {
 
 func main() {
 	timeInterval = 30 * 1000 * time.Millisecond
-	timeOlder = timeOlder
 	debug.SetTraceback("goroutine")
 	go AutoSave()
-	for true {
+	for {
 		var command string
 		fmt.Scanln(&command)
 		fmt.Printf("[Info]Deal with " + command + "\n")
@@ -338,7 +337,6 @@ func main() {
 			var newTime int64
 			fmt.Scanln(&newTime)
 			timeInterval = time.Duration(newTime) * time.Millisecond
-			timeOlder = timeInterval
 			fmt.Printf("[AutoSave] Settings done!\n")
 		}
 		if command == "countf" || command == "ft" {
