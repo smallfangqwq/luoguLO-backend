@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/BurntSushi/toml"
 	"gopkg.in/mgo.v2"
-	"os"
-	"time"
 )
 
 type DatabaseConfigurations struct {
@@ -20,7 +22,7 @@ type HttpConfigurations struct {
 	Port int
 }
 
-type EnableConfigurations struct {
+type FunctionConfigurations struct {
 	Autosave bool
 	Web      bool
 }
@@ -29,7 +31,7 @@ type Configurations struct {
 	Database     DatabaseConfigurations
 	Request      RequestConfigurations
 	Http         HttpConfigurations
-	Enable       EnableConfigurations
+	Function     FunctionConfigurations `toml:"functions"`
 	Target       string
 	TimeInterval int `toml:"time_interval"`
 }
@@ -55,12 +57,14 @@ func main() {
 	} else {
 		defer Session.Close()
 	}
-	if Config.Enable.Autosave == true {
+	var wg sync.WaitGroup
+	if Config.Function.Autosave {
+		wg.Add(1)
 		go autoSaveMain()
 	}
-	if Config.Enable.Web == true {
+	if Config.Function.Web {
+		wg.Add(1)
 		go webMain()
 	}
-	for {
-	}
+	wg.Wait()
 }

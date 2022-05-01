@@ -3,17 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"gopkg.in/mgo.v2"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-)
 
-import (
+	"github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
 )
 
 type LegacyPost struct {
@@ -115,7 +113,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 			result.SendTime = sendTimes.Unix()
 			result.Author = texts
 			AuthorId, _ := selection.Find("a").First().Attr("href")
-			AuthorId = strings.Trim(AuthorId, "/user/")
+			AuthorId = strings.Trim(AuthorId, "/user")
 			result.AuthorID = AuthorId
 			return
 		}
@@ -126,7 +124,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 		var newComment DBComment
 		newComment.Author = texts
 		AuthorId, _ := selection.Find("a").First().Attr("href")
-		AuthorId = strings.Trim(AuthorId, "/user/")
+		AuthorId = strings.Trim(AuthorId, "/user")
 		newComment.AuthorId = AuthorId
 		sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 		newComment.SendTime = sendTimes.Unix()
@@ -177,7 +175,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 			newComment.SendTime = sendTimes.Unix()
 			AuthorId, _ := selection.Find("a").First().Attr("href")
-			AuthorId = strings.Trim(AuthorId, "/user/")
+			AuthorId = strings.Trim(AuthorId, "/user")
 			newComment.AuthorId = AuthorId
 			result.Comment = append(result.Comment, newComment)
 			//fmt.Println("i", i, "select text", texts)
