@@ -2,7 +2,7 @@ target = "https://www.luogu.com.cn/api/discuss?forum=relevantaffairs&page=1"
 time_interval = 30
 
 [database]
-url = "mongodb://localhost:27017"
+url = "mongodb://root:rtpwd@localhost:62232"
 
 [request]
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
