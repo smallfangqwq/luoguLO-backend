@@ -4,49 +4,67 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
 )
 
+type DatabaseConfigurations struct {
+	URL string
+}
+
+type RequestConfigurations struct {
+	UserAgent string `toml:"user_agent"`
+	Cookie    string
+}
+
+type Configurations struct {
+	Database     DatabaseConfigurations
+	Request      RequestConfigurations
+	Target       string
+	TimeInterval int `toml:"time_interval"`
+}
+
 type LegacyPost struct {
-	PostID int    `json:"PostID"`
-	Title  string `json:"Title"`
+	PostID int
+	Title  string
 	Author struct {
 		Instance string `json:"_instance"`
-	} `json:"Author"`
+	}
 	Forum struct {
-		ForumID      int    `json:"ForumID"`
-		Name         string `json:"Name"`
-		InternalName string `json:"InternalName"`
+		ForumID      int
+		Name         string
+		InternalName string
 		Instance     string `json:"_instance"`
-	} `json:"Forum"`
-	Top         int  `json:"Top"`
-	SubmitTime  int  `json:"SubmitTime"`
-	IsValid     bool `json:"isValid"`
+	}
+	Top         int
+	SubmitTime  int
+	IsValid     bool
 	LatestReply struct {
 		Author struct {
 			Instance string `json:"_instance"`
-		} `json:"Author"`
-		ReplyTime int    `json:"ReplyTime"`
-		Content   string `json:"Content"`
+		}
+		ReplyTime int
+		Content   string
 		Instance  string `json:"_instance"`
-	} `json:"LatestReply"`
-	RepliesCount int    `json:"RepliesCount"`
+	}
+	RepliesCount int
 	Instance     string `json:"_instance"`
 }
 
 type LegacyPostList struct {
-	Status int `json:"status"`
+	Status int
 	Data   struct {
-		Count  int          `json:"count"`
-		Result []LegacyPost `json:"result"`
-	} `json:"data"`
+		Count  int
+		Result []LegacyPost
+	}
 }
 
 type DBComment struct {
@@ -67,7 +85,7 @@ type DBDiscussTemplate struct {
 	Comment  []DBComment
 }
 
-func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
+func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result DBDiscussTemplate) {
 	//Complete !
 	url := "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID)
 	req, err := http.NewRequest("GET", url, nil)
@@ -76,10 +94,10 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		time.Sleep(120 * time.Second)
 		return
 	}
-	req.Header.Set("Cookie", "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299")
+	req.Header.Set("Cookie", config.Request.Cookie)
 	req.Header.Set("Host", "www.luogu.com.cn")
 	req.Header.Set("Referer", "https://www.luogu.com.cn")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+	req.Header.Set("User-Agent", config.Request.UserAgent)
 	client := &http.Client{Timeout: time.Second * 15}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -150,10 +168,10 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			//fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
 			break
 		}
-		req.Header.Set("Cookie", "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299")
+		req.Header.Set("Cookie", config.Request.Cookie)
 		req.Header.Set("Host", "www.luogu.com.cn")
 		req.Header.Set("Referer", "https://www.luogu.com.cn")
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+		req.Header.Set("User-Agent", config.Request.UserAgent)
 		client := &http.Client{Timeout: time.Second * 15}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -197,7 +215,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 	return
 }
 
-func SaveNewDiscuss(session *mgo.Session, PostID int) {
+func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 	// 检查是否已经存在
 	var discuss DBDiscussTemplate
 	discussCount, err := session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).Count()
@@ -208,7 +226,7 @@ func SaveNewDiscuss(session *mgo.Session, PostID int) {
 	if discussCount == 0 {
 		// 爬全部
 		//	fmt.Printf("HERE")
-		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
+		nowThings := ChangeDiscussToDBDiscussTemlate(config, PostID)
 		// 分析帖子
 		//nowThingsDB, err := bson.Marshal(&nowThings)
 		//if err != nil {
@@ -233,7 +251,7 @@ func SaveNewDiscuss(session *mgo.Session, PostID int) {
 		}
 
 		// 分析现在的帖子
-		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
+		nowThings := ChangeDiscussToDBDiscussTemlate(config, PostID)
 		// 将新评论整理
 		lens := nowThings.Count
 		NewDiscuss := discuss
@@ -263,8 +281,8 @@ func SaveNewDiscuss(session *mgo.Session, PostID int) {
 	}
 }
 
-func AutoSave(session *mgo.Session) {
-	url := "https://www.luogu.com.cn/api/discuss?forum=relevantaffairs&page=1"
+func AutoSave(session *mgo.Session, config Configurations) {
+	url := config.Target
 	fmt.Println("Listing", url)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -286,13 +304,13 @@ func AutoSave(session *mgo.Session) {
 		panic(result.Status)
 	}
 
-	lenOfDataResult := len(result.Data.Result)
-	for i := 0; i < lenOfDataResult; i++ {
-		fmt.Printf("\tSaving %d...\n", result.Data.Result[i].PostID)
-		SaveNewDiscuss(session, result.Data.Result[i].PostID)
+	for _, post := range result.Data.Result {
+		fmt.Printf("\tSaving %d...\n", post.PostID)
+		SaveNewDiscuss(session, config, post.PostID)
 	}
 
 	fmt.Println("Fetched", url)
+	time.Sleep(time.Duration(config.TimeInterval) * time.Second)
 }
 
 func main() {
@@ -304,10 +322,14 @@ func main() {
 			main()
 		}
 	}()
-	if session, err := mgo.Dial("mongodb://localhost:27017"); err != nil {
+	var config Configurations
+	if _, err := toml.DecodeFile(os.Args[1], &config); err != nil {
+		panic(err)
+	}
+	if session, err := mgo.Dial(config.Database.URL); err != nil {
 		panic(err)
 	} else {
 		defer session.Close()
-		AutoSave(session)
+		AutoSave(session, config)
 	}
 }
