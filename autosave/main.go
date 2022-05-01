@@ -1,4 +1,4 @@
-package autosave
+package main
 
 import (
 	"encoding/json"
