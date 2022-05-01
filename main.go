@@ -184,7 +184,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		newDoc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 			texts := selection.Find("a").First().Text()
 			if i == 0 {
-				break
+				return
 			}
 			result.Count++
 			oldT := selection.Text()
