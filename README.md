@@ -2,6 +2,13 @@
 
 ### 部署
 
+运行
+```shell
+go build .
+./backend
+nohup ./backend
+```
+
 ### 贡献
 
 万分感谢项目：https://mholt.github.io/json-to-go/

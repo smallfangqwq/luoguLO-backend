@@ -24,10 +24,14 @@ type RequestConfigurations struct {
 	UserAgent string `toml:"user_agent"`
 	Cookie    string
 }
+type HttpConfigurations struct {
+	Port int
+}
 
 type Configurations struct {
 	Database     DatabaseConfigurations
 	Request      RequestConfigurations
+	Http         HttpConfigurations
 	Target       string
 	TimeInterval int `toml:"time_interval"`
 }
@@ -143,7 +147,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 		newComment.Author = texts
 		AuthorId, _ := selection.Find("a").First().Attr("href")
 		AuthorId = strings.Trim(AuthorId, "/user/")
-		result.AuthorID = AuthorId
+		newComment.AuthorId = AuthorId
 		sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 		newComment.SendTime = sendTimes.Unix()
 		result.Comment = append(result.Comment, newComment)
@@ -165,7 +169,6 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 		url = "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID) + "?page=" + strconv.Itoa(i)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			//fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
 			break
 		}
 		req.Header.Set("Cookie", config.Request.Cookie)
@@ -175,8 +178,6 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 		client := &http.Client{Timeout: time.Second * 15}
 		resp, err := client.Do(req)
 		if err != nil {
-			//	fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
-			//	fmt.Print("[ERROR]Error reading response. ", err)
 			break
 		}
 		defer resp.Body.Close()
@@ -195,10 +196,12 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 			newComment.Author = texts
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 			newComment.SendTime = sendTimes.Unix()
+			AuthorId, _ := selection.Find("a").First().Attr("href")
+			AuthorId = strings.Trim(AuthorId, "/user/")
+			newComment.AuthorId = AuthorId
 			result.Comment = append(result.Comment, newComment)
 			//fmt.Println("i", i, "select text", texts)
 		})
-		//每条内容内容获取和标题内容
 		newDoc.Find(".am-comment-bd").Each(func(i int, selection *goquery.Selection) {
 			htmls, _ := selection.Html()
 			if i == 0 {
@@ -212,6 +215,9 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 		}
 	}
 	//	fmt.Print(result)
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 
@@ -220,8 +226,7 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 	var discuss DBDiscussTemplate
 	discussCount, err := session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).Count()
 	if err != nil {
-		fmt.Print("[Save ERROR] Can`t check exist. LOG:", err)
-		return
+		panic(err)
 	}
 	if discussCount == 0 {
 		// 爬全部
@@ -239,8 +244,7 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 	} else {
 		err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).One(&discuss)
 		if err != nil {
-			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err, "\n")
-			return
+			panic(err)
 		}
 		// 先看看爬到的最后一条的发布时间
 		var lastTime int64
@@ -276,7 +280,7 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 		// 将内容update.
 		err = session.DB("luogulo").C("discuss").Update(&discuss, &NewDiscuss)
 		if err != nil {
-			fmt.Print("[Save ERROR] ERROR2. LOG:", err, "\n")
+			panic(err)
 		}
 	}
 }
@@ -284,7 +288,6 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 func AutoSave(session *mgo.Session, config Configurations) {
 	url := config.Target
 	fmt.Println("Listing", url)
-
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		panic(err)
@@ -312,4 +315,8 @@ func AutoSave(session *mgo.Session, config Configurations) {
 	fmt.Println("Fetched", url)
 	time.Sleep(time.Duration(config.TimeInterval) * time.Second)
 	AutoSave(session, config)
+}
+
+func autoSaveMain() {
+	go AutoSave(Session, Config)
 }

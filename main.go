@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+var Config Configurations
+var Session *mgo.Session
+var err error
+
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -17,16 +21,16 @@ func main() {
 			main()
 		}
 	}()
-	var config Configurations
-	if _, err := toml.DecodeFile(os.Args[1], &config); err != nil {
+	if _, err := toml.DecodeFile(os.Args[1], &Config); err != nil {
 		panic(err)
 	}
-	if session, err := mgo.Dial(config.Database.URL); err != nil {
+	if Session, err = mgo.Dial(Config.Database.URL); err != nil {
 		panic(err)
 	} else {
-		defer session.Close()
-		go AutoSave(session, config)
+		defer Session.Close()
 	}
+	go autoSaveMain()
+	go webMain()
 	for {
 	}
 }

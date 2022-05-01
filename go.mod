@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/gorilla/mux v1.8.0
 	go.mongodb.org/mongo-driver v1.8.3
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
