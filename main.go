@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -68,12 +69,14 @@ func JSONToMap(str []byte) AutoSaveFetchStruct {
 type DBComment struct {
 	SendTime int64
 	Author   string
+	AuthorId string
 	Content  string
 }
 
 type DBDiscussTemplate struct {
 	PostID   int
 	Author   string
+	AuthorID string
 	SendTime int64
 	Title    string
 	Describe string
@@ -126,6 +129,9 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 			result.SendTime = sendTimes.Unix()
 			result.Author = texts
+			AuthorId, _ := selection.Find("a").First().Attr("href")
+			AuthorId = strings.Trim(AuthorId, "/user/")
+			result.AuthorID = AuthorId
 			return
 		}
 		result.Count++
@@ -134,6 +140,9 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		//result.Comment[i].Author = texts
 		var newComment DBComment
 		newComment.Author = texts
+		AuthorId, _ := selection.Find("a").First().Attr("href")
+		AuthorId = strings.Trim(AuthorId, "/user/")
+		result.AuthorID = AuthorId
 		sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
 		newComment.SendTime = sendTimes.Unix()
 		result.Comment = append(result.Comment, newComment)
@@ -150,13 +159,13 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		//	fmt.Println("i", i, "select text", htmls)
 	})
 	// 多页面
+	// TODO: 页面过多分段处理问题
 	for i := 2; true; i++ {
 		url = "https://www.luogu.com.cn/discuss/" + strconv.Itoa(PostID) + "?page=" + strconv.Itoa(i)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			//fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
-			time.Sleep(120 * time.Second)
-			return
+			break
 		}
 		req.Header.Set("Cookie", "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299")
 		req.Header.Set("Host", "www.luogu.com.cn")
@@ -167,8 +176,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		if err != nil {
 			//	fmt.Printf("[ERROR] Tool can`t get Luogu discuss now.\n")
 			//	fmt.Print("[ERROR]Error reading response. ", err)
-			time.Sleep(120 * time.Second)
-			return
+			break
 		}
 		defer resp.Body.Close()
 		newDoc, _ := goquery.NewDocumentFromReader(resp.Body)
@@ -176,7 +184,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		newDoc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 			texts := selection.Find("a").First().Text()
 			if i == 0 {
-				return
+				break
 			}
 			result.Count++
 			oldT := selection.Text()
@@ -232,13 +240,12 @@ func SaveNewDiscuss(PostID int) {
 		//}
 		err = session.DB("luogulo").C("discuss").Insert(&nowThings)
 		if err != nil {
-			fmt.Print("[Save ERROR] ERROR. LOG:", err)
+			fmt.Print("[Save ERROR] ERROR1. LOG:", err, "\n")
 		}
 	} else {
-		fmt.Print("TESTHERE")
 		err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).One(&discuss)
 		if err != nil {
-			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err)
+			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err, "\n")
 			return
 		}
 		// 先看看爬到的最后一条的发布时间
@@ -275,10 +282,10 @@ func SaveNewDiscuss(PostID int) {
 		// 将内容update.
 		err = session.DB("luogulo").C("discuss").Update(&discuss, &NewDiscuss)
 		if err != nil {
-			fmt.Print("[Save ERROR] ERROR. LOG:", err)
+			fmt.Print("[Save ERROR] ERROR2. LOG:", err, "\n")
 		}
 	}
-	defer session.Close()
+	session.Close()
 }
 
 func AutoSave() {
@@ -304,7 +311,7 @@ func AutoSave() {
 		resp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("[ERROR] AutoSave Tool can`t get Luogu discuss now. We change the interval to 120 seconds.\n")
-			fmt.Print("[ERROR]Error reading response. ", err)
+			fmt.Print("[ERROR]Error reading response. ", err, "\n")
 			time.Sleep(120 * time.Second)
 			continue
 		}
@@ -333,8 +340,11 @@ func main() {
 	timeInterval = 30 * 1000 * time.Millisecond
 	debug.SetTraceback("goroutine")
 	go AutoSave()
-	defer main()             // 若出现不可以意料的错误
-	defer SendErrorMessage() // 直接报告
+	if false {
+		// 守护
+		defer main()             // 若出现不可以意料的错误
+		defer SendErrorMessage() // 直接报告
+	}
 	for {
 		var command string
 		fmt.Scanln(&command)
