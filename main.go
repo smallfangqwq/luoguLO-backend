@@ -296,6 +296,14 @@ func AutoSave(session *mgo.Session) {
 }
 
 func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Print("[ERROR] ", err, "\n")
+			time.Sleep(1 * time.Second)
+			fmt.Print("[INFO] Restart. \n")
+			main()
+		}
+	}()
 	if session, err := mgo.Dial("mongodb://localhost:27017"); err != nil {
 		panic(err)
 	} else {
