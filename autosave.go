@@ -16,26 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type DatabaseConfigurations struct {
-	URL string
-}
-
-type RequestConfigurations struct {
-	UserAgent string `toml:"user_agent"`
-	Cookie    string
-}
-type HttpConfigurations struct {
-	Port int
-}
-
-type Configurations struct {
-	Database     DatabaseConfigurations
-	Request      RequestConfigurations
-	Http         HttpConfigurations
-	Target       string
-	TimeInterval int `toml:"time_interval"`
-}
-
 type LegacyPost struct {
 	PostID int
 	Title  string

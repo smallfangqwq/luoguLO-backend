@@ -8,6 +8,32 @@ import (
 	"time"
 )
 
+type DatabaseConfigurations struct {
+	URL string
+}
+
+type RequestConfigurations struct {
+	UserAgent string `toml:"user_agent"`
+	Cookie    string
+}
+type HttpConfigurations struct {
+	Port int
+}
+
+type EnableConfigurations struct {
+	Autosave bool
+	Web      bool
+}
+
+type Configurations struct {
+	Database     DatabaseConfigurations
+	Request      RequestConfigurations
+	Http         HttpConfigurations
+	Enable       EnableConfigurations
+	Target       string
+	TimeInterval int `toml:"time_interval"`
+}
+
 var Config Configurations
 var Session *mgo.Session
 var err error
@@ -29,8 +55,12 @@ func main() {
 	} else {
 		defer Session.Close()
 	}
-	go autoSaveMain()
-	go webMain()
+	if Config.Enable.Autosave == true {
+		go autoSaveMain()
+	}
+	if Config.Enable.Web == true {
+		go webMain()
+	}
 	for {
 	}
 }
