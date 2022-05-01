@@ -23,7 +23,7 @@ var fetchCount int64 = 0
 type AutoSaveFetchStruct struct {
 	Status int `json:"status"`
 	Data   struct {
-		Count  int `json:"count"`
+		Count  int `json:"Count"`
 		Result []struct {
 			PostID int    `json:"PostID"`
 			Title  string `json:"Title"`
@@ -77,7 +77,7 @@ type DBDiscussTemplate struct {
 	SendTime int64
 	Title    string
 	Describe string
-	count    int
+	Count    int
 	Comment  []DBComment
 }
 
@@ -110,12 +110,12 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		time.Sleep(120 * time.Second)
 		return
 	}
-	result.count = 0
+	result.Count = 0
 	titles := doc.Find("h1").First().Text()
 	result.Title = titles
 	result.PostID = PostID
 
-	result.count = 0
+	result.Count = 0
 	//fmt.Printf(titles)
 	// 获取每条评论的发布时间和内容以及整个帖子内容
 	doc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
@@ -128,7 +128,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			result.Author = texts
 			return
 		}
-		result.count++
+		result.Count++
 		oldT := selection.Text()
 		regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
 		//result.Comment[i].Author = texts
@@ -172,13 +172,13 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 		}
 		defer resp.Body.Close()
 		newDoc, _ := goquery.NewDocumentFromReader(resp.Body)
-		nowCounts := result.count
+		nowCounts := result.Count
 		newDoc.Find(".am-comment-meta").Each(func(i int, selection *goquery.Selection) {
 			texts := selection.Find("a").First().Text()
 			if i == 0 {
 				return
 			}
-			result.count++
+			result.Count++
 			oldT := selection.Text()
 			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
 			//result.Comment[i].Author = texts
@@ -198,7 +198,7 @@ func ChangeDiscussToDBDiscussTemlate(PostID int) (result DBDiscussTemplate) {
 			result.Comment[i-1+nowCounts].Content = htmls
 			//	fmt.Println("i", i, "select text", htmls)
 		})
-		if nowCounts == result.count { // 到头啦
+		if nowCounts == result.Count { // 到头啦
 			break
 		}
 	}
@@ -235,6 +235,7 @@ func SaveNewDiscuss(PostID int) {
 			fmt.Print("[Save ERROR] ERROR. LOG:", err)
 		}
 	} else {
+		fmt.Print("TESTHERE")
 		err = session.DB("luogulo").C("discuss").Find(bson.M{"postid": PostID}).One(&discuss)
 		if err != nil {
 			fmt.Print("[Save ERROR] Can`t read discuss information before. LOG:", err)
@@ -242,8 +243,8 @@ func SaveNewDiscuss(PostID int) {
 		}
 		// 先看看爬到的最后一条的发布时间
 		var lastTime int64
-		if discuss.count > 0 {
-			lastTime = discuss.Comment[discuss.count-1].SendTime
+		if discuss.Count > 0 {
+			lastTime = discuss.Comment[discuss.Count-1].SendTime
 		} else {
 			lastTime = 0
 		}
@@ -251,23 +252,23 @@ func SaveNewDiscuss(PostID int) {
 		// 分析现在的帖子
 		nowThings := ChangeDiscussToDBDiscussTemlate(PostID)
 		// 将新评论整理
-		lens := nowThings.count
+		lens := nowThings.Count
 		NewDiscuss := discuss
 		for i := 0; i < lens; i++ {
 			if nowThings.Comment[i].SendTime > lastTime {
 				NewDiscuss.Comment = append(NewDiscuss.Comment, nowThings.Comment[i])
-				NewDiscuss.count++
+				NewDiscuss.Count++
 			} else if nowThings.Comment[i].SendTime == lastTime { // 可爱的洛谷竟然只到分钟，显然有可能遇到时间问题
 				flag := false
-				for j := 0; j < discuss.count; j++ {
+				for j := 0; j < discuss.Count; j++ {
 					if discuss.Comment[j].Content == nowThings.Comment[j].Content {
 						flag = true
 						break
 					}
 				}
 				if !flag {
-					NewDiscuss.Comment[NewDiscuss.count] = nowThings.Comment[i]
-					NewDiscuss.count++
+					NewDiscuss.Comment = append(NewDiscuss.Comment, nowThings.Comment[i])
+					NewDiscuss.Count++
 				}
 			}
 		}
@@ -324,14 +325,20 @@ func AutoSave() {
 	}
 }
 
+func SendErrorMessage() {
+	fmt.Print("[FATAL ERROR] ERROR!\n")
+}
+
 func main() {
 	timeInterval = 30 * 1000 * time.Millisecond
 	debug.SetTraceback("goroutine")
 	go AutoSave()
+	defer main()             // 若出现不可以意料的错误
+	defer SendErrorMessage() // 直接报告
 	for {
 		var command string
 		fmt.Scanln(&command)
-		fmt.Printf("[Info]Deal with " + command + "\n")
+		fmt.Printf("[Info] Deal with " + command + "\n")
 		if command == "changeTime" || command == "ct" {
 			fmt.Printf("[AutoSave] How long do you want to set(millonsecond)?\n")
 			var newTime int64
