@@ -49,10 +49,24 @@ func UpdateData(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(bson.M{"status": "ok."})
 }
 
+func UpdateDataAll(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", Config.Http.AccessOrigin)
+	params := mux.Vars(r)
+	val, err := strconv.Atoi(params["id"])
+	if err != nil {
+		json.NewEncoder(w).Encode(bson.M{"status": "error! No string! "})
+		return
+	}
+	SaveNewDiscuss(Session, Config, val)
+	json.NewEncoder(w).Encode(bson.M{"status": "ok."})
+}
+
 func webMain() {
 	r := mux.NewRouter()
 	r.HandleFunc("/api/discuss/data/{id}", GetData).Methods("GET")
-	r.HandleFunc("/api/discuss/update/{id}/{fromPage}:{endPage}", UpdateData).Methods("GET")
+	r.HandleFunc("/api/discuss/update/{id}", UpdateDataAll).Methods("GET")
+	r.HandleFunc("/api/discuss/updatealone/{id}/{fromPage}:{endPage}", UpdateData).Methods("GET")
 	err := http.ListenAndServe(":"+strconv.Itoa(Config.Http.Port), r)
 	if err != nil {
 		panic(err)
