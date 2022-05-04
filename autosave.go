@@ -169,7 +169,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 			result.Count++
 			oldT := selection.Text()
 			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
-			//result.Comment[i].Author = texts
+			result.Comment[i].Author = texts // 这里为啥注释？
 			var newComment DBComment
 			newComment.Author = texts
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))

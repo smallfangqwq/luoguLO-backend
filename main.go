@@ -19,7 +19,8 @@ type RequestConfigurations struct {
 	Cookie    string
 }
 type HttpConfigurations struct {
-	Port int
+	Port         int
+	AccessOrigin string
 }
 
 type FunctionConfigurations struct {
