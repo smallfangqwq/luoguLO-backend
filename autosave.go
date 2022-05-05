@@ -169,7 +169,7 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 			result.Count++
 			oldT := selection.Text()
 			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
-			result.Comment[i].Author = texts // 这里为啥注释？
+			//result.Comment[i].Author = texts 我是nt 11111
 			var newComment DBComment
 			newComment.Author = texts
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))
@@ -244,7 +244,7 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 			} else if nowThings.Comment[i].SendTime == lastTime { // 可爱的洛谷竟然只到分钟，显然有可能遇到时间问题
 				flag := false
 				for j := 0; j < discuss.Count; j++ {
-					if discuss.Comment[j].Content == nowThings.Comment[j].Content {
+					if discuss.Comment[j].Content == nowThings.Comment[i].Content {
 						flag = true
 						break
 					}

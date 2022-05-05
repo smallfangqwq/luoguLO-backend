@@ -21,7 +21,7 @@ func SaveAlone(session *mgo.Session, PostID int, FromPage int, EndPage int) { //
 		panic(err)
 	}
 	if discussCount == 0 {
-		nowThings := ChangeDiscussSomePageToDBDiscussTemlate(PostID, 1, 1)
+		nowThings := ChangeDiscussSomePageToDBDiscussTemlate(PostID, 1, EndPage)
 		err = session.DB("luogulo").C("discuss").Insert(&nowThings)
 		if err != nil {
 			fmt.Print("[Save ERROR] ERROR1. LOG:", err, "\n")
@@ -105,7 +105,6 @@ func ChangeDiscussSomePageToDBDiscussTemlate(PostID int, FromPage int, EndPage i
 			result.Count++
 			oldT := selection.Text()
 			regR, _ := regexp.Compile(`[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}`)
-			result.Comment[i].Author = texts
 			var newComment DBComment
 			newComment.Author = texts
 			sendTimes, _ := time.Parse("2006-01-02 15:04", regR.FindString(oldT))

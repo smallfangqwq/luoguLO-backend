@@ -16,14 +16,20 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 	val, err := strconv.Atoi(params["id"])
 	if err != nil {
 		result.Title = "404"
-		json.NewEncoder(w).Encode(result)
+		err := json.NewEncoder(w).Encode(result)
+		if err != nil {
+			return
+		}
 		return
 	}
 	err = Session.DB("luogulo").C("discuss").Find(bson.M{"postid": val}).One(&result)
 	if err != nil {
 		result.Title = "404"
 	}
-	json.NewEncoder(w).Encode(result)
+	err = json.NewEncoder(w).Encode(result)
+	if err != nil {
+		return
+	}
 }
 
 func UpdateData(w http.ResponseWriter, r *http.Request) {
@@ -32,21 +38,33 @@ func UpdateData(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	val, err := strconv.Atoi(params["id"])
 	if err != nil {
-		json.NewEncoder(w).Encode(bson.M{"status": "error! No string !"})
+		err := json.NewEncoder(w).Encode(bson.M{"status": "error! No string !"})
+		if err != nil {
+			return
+		}
 		return
 	}
 	fromPage, err := strconv.Atoi(params["fromPage"])
 	if err != nil {
-		json.NewEncoder(w).Encode(bson.M{"status": "error! No string!"})
+		err := json.NewEncoder(w).Encode(bson.M{"status": "error! No string!"})
+		if err != nil {
+			return
+		}
 		return
 	}
 	endPage, err := strconv.Atoi(params["endPage"])
 	if err != nil {
-		json.NewEncoder(w).Encode(bson.M{"status": "error! No string! "})
+		err := json.NewEncoder(w).Encode(bson.M{"status": "error! No string! "})
+		if err != nil {
+			return
+		}
 		return
 	}
 	SaveAlone(Session, val, fromPage, endPage)
-	json.NewEncoder(w).Encode(bson.M{"status": "ok."})
+	err = json.NewEncoder(w).Encode(bson.M{"status": "ok."})
+	if err != nil {
+		return
+	}
 }
 
 func UpdateDataAll(w http.ResponseWriter, r *http.Request) {
@@ -55,11 +73,17 @@ func UpdateDataAll(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	val, err := strconv.Atoi(params["id"])
 	if err != nil {
-		json.NewEncoder(w).Encode(bson.M{"status": "error! No string! "})
+		//	err := json.NewEncoder(w).Encode(bson.M{"status": "error! No string! "})
+		if err != nil {
+			return
+		}
 		return
 	}
 	SaveNewDiscuss(Session, Config, val)
-	json.NewEncoder(w).Encode(bson.M{"status": "ok."})
+	//	err = json.NewEncoder(w).Encode(bson.M{"status": "ok."})
+	if err != nil {
+		return
+	}
 }
 
 func webMain() {
