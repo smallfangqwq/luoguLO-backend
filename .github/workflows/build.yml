@@ -1,0 +1,39 @@
+name: Go
+
+on:
+  push:
+    tags:
+      - P*
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Build
+      run: go build .
+      
+    - name: Deploy file to server
+      uses: wlixcc/SFTP-Deploy-Action@v1.2.2
+      with:  
+        username: 'root'
+        server: '${{ secrets.SERVER_IP }}'
+        ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+        local_path: './'
+        remote_path: '/luogulo/build'
+
+    - name: Run SSH Build
+      uses: D3rHase/ssh-command-action@v0.2.1
+      with:
+        HOST: ${{secrets.HOST}}                           
+        PORT: ${{secrets.PORT}}                      
+        USER: 'root'                     
+        PRIVATE_SSH_KEY: ${{secrets.SSH_PRIVATE_KEY}}  
+        COMMAND: ${{secrets.COMMAND}} 
