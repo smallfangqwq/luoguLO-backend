@@ -15,7 +15,7 @@ jobs:
         go-version: 1.18
 
     - name: Build
-      run: go build -o /build/backend .
+      run: go build  .
       
     - name: Deploy file to server
       uses: wlixcc/SFTP-Deploy-Action@v1.2.2
@@ -23,7 +23,7 @@ jobs:
         username: 'root'
         server: '${{ secrets.SERVER_IP }}'
         ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-        local_path: './build/*'
+        local_path: './backend'
         remote_path: '/luogulo/build'
 
     - name: Run SSH Build
