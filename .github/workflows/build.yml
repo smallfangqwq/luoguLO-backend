@@ -15,7 +15,7 @@ jobs:
         go-version: 1.18
 
     - name: Build
-      run: go build . -o /build/backend
+      run: go build -o /build/backend .
       
     - name: Deploy file to server
       uses: wlixcc/SFTP-Deploy-Action@v1.2.2
