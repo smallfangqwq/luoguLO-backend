@@ -16,7 +16,7 @@ jobs:
 
     - name: Build
       run: go build  .
-      
+  
     - name: Deploy file to server
       uses: wlixcc/SFTP-Deploy-Action@v1.2.2
       with:  
@@ -26,11 +26,9 @@ jobs:
         local_path: './backend'
         remote_path: '/luogulo/build'
 
-    - name: Run SSH Build
-      uses: D3rHase/ssh-command-action@v0.2.1
+    - name: Run SSH
+      uses: JimCronqvist/action-ssh@master
       with:
-        HOST: ${{secrets.HOST}}                           
-        PORT: ${{secrets.PORT}}                      
-        USER: 'root'                     
-        PRIVATE_SSH_KEY: ${{secrets.SSH_PRIVATE_KEY}}  
-        COMMAND: ${{secrets.COMMAND}} 
+        hosts: ${{ secrets.hosts }}
+        privateKey: ${{ secrets.PRIVATE_KEY }}
+        command: ${{ secrets.COMMAND }}
