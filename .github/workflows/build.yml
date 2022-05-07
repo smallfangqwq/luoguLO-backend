@@ -9,24 +9,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
-
-    - name: Build
-      run: go build  .
-  
-    - name: Deploy file to server
-      uses: wlixcc/SFTP-Deploy-Action@v1.2.2
-      with:  
-        username: 'root'
-        server: '${{ secrets.SERVER_IP }}'
-        ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-        local_path: './backend'
-        remote_path: '/luogulo/build'
-
-    - name: Run SSH
+    - name: Build Online
       uses: JimCronqvist/action-ssh@master
       with:
         hosts: ${{ secrets.hosts }}
