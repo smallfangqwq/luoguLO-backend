@@ -100,7 +100,6 @@ func ChangeDiscussToDBDiscussTemlate(config Configurations, PostID int) (result 
 	titles := doc.Find("h1").First().Text()
 	result.Title = titles
 	result.PostID = PostID
-
 	result.Count = 0
 	//fmt.Printf(titles)
 	// 获取每条评论的发布时间和内容以及整个帖子内容
@@ -231,12 +230,18 @@ func SaveNewDiscuss(session *mgo.Session, config Configurations, PostID int) {
 		} else {
 			lastTime = 0
 		}
-
 		// 分析现在的帖子
 		nowThings := ChangeDiscussToDBDiscussTemlate(config, PostID)
 		// 将新评论整理
 		lens := nowThings.Count
 		NewDiscuss := discuss
+		// 考虑之前存的时候没东西
+		if discuss.Title == "" {
+			NewDiscuss.Title = discuss.Title
+		}
+		if discuss.Describe == "" {
+			NewDiscuss.Describe = discuss.Describe
+		}
 		for i := 0; i < lens; i++ {
 			if nowThings.Comment[i].SendTime > lastTime {
 				NewDiscuss.Comment = append(NewDiscuss.Comment, nowThings.Comment[i])
