@@ -2,16 +2,16 @@ target = "https://www.luogu.com.cn/api/discuss?forum=relevantaffairs&page=1"
 time_interval = 30
 
 [database]
-url = "mongodb://root:rtpwd@localhost:62232"
+url = "xxx"
 
 [request]
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
-cookie = "UM_distinctid=17d89339530bd4-0df461f9ef6091-1f396452-13c680-17d89339531ceb; login_referer=https%3A%2F%2Fwww.luogu.com.cn%2F; __client_id=ae4f59efbd21087f9cb79c186e8d4d91044e0db9; _uid=99640; CNZZDATA5476811=cnzz_eid%3D613104886-1624186548-%26ntime%3D1651295299"
+cookie = "xxx"
 
 [http]
-port = 6066
+port = 9000
 access_origin = "*"
 
 [functions]
-autosave = true
+autosave = false
 web = true
