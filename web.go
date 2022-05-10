@@ -2,15 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func GetData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", Config.Http.AccessOrigin)
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("content-type", "application/json;charset=UTF-8") 
 	params := mux.Vars(r) // Get params
 	var result DBDiscussTemplate
 	val, err := strconv.Atoi(params["id"])
@@ -35,6 +40,10 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 func UpdateData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", Config.Http.AccessOrigin)
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("content-type", "application/json;charset=UTF-8")
 	params := mux.Vars(r)
 	val, err := strconv.Atoi(params["id"])
 	if err != nil {
